@@ -10,6 +10,9 @@ import sounddevice as sd
 import soundfile as sf
 import threading
 
+#set up bitmap font
+fontName, fontColumns, fontRows = "assets/font.png", 18, 6
+
 #---------------------------------------------------------------------------------------------------------------------
 #                                                           transform_point()
 #---------------------------------------------------------------------------------------------------------------------
@@ -519,7 +522,7 @@ class Text(AnimSprite):
 #                                                           
 #---------------------------------------------------------------------------------------------------------------------
     def __init__(self, text="", x=0, y=0, rotation=0, scaleX=1, scaleY=1, originX=None, originY=None):    
-        super().__init__("font.png", 18, 6, x, y, rotation, scaleX, scaleY, originX, originY)
+        super().__init__(fontName, fontColumns, fontRows, x, y, rotation, scaleX, scaleY, originX, originY)
         self.value = text    # Text to render
         self.charWidth = self.texture.width / 18
         self.charHeight = self.texture.height / 6

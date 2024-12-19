@@ -11,8 +11,8 @@ class MyGame(Game):
                 
         """Create sprites and set up the game."""
         """Create two sprites for collision testing."""
-        self.sprite1 = Sprite("texture.png", x=320, y=240, rotation=0)
-        self.sprite2 = AnimSprite("colors.png", columns=2, rows=2, x=320, y=260, rotation=45, scaleX=1, scaleY=1, originX=16, originY=16 )
+        self.sprite1 = Sprite("assets/texture.png", x=320, y=240, rotation=0)
+        self.sprite2 = AnimSprite("assets/colors.png", columns=2, rows=2, x=320, y=260, rotation=45, scaleX=1, scaleY=1, originX=16, originY=16 )
         
         self.addChild(self.sprite1)
         self.addChild(self.sprite2)
@@ -21,7 +21,7 @@ class MyGame(Game):
         
         self.addChild(self.text)    
         
-        sound = Sound("snowland.ogg")
+        sound = Sound("assets/snowland.ogg")
         sound.play()            
         
     def update(self):
