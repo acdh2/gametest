@@ -9,6 +9,7 @@ import random
 import sounddevice as sd
 import soundfile as sf
 import threading
+import time
 
 #set up bitmap font
 fontName, fontColumns, fontRows = "assets/font.png", 18, 6
@@ -28,6 +29,60 @@ def transform_point(x, y, tx, ty, rotation, scaleX, scaleY):
     x_rot = x_scaled * cos_a - y_scaled * sin_a
     y_rot = x_scaled * sin_a + y_scaled * cos_a
     return x_rot + tx, y_rot + ty
+    
+#---------------------------------------------------------------------------------------------------------------------
+#                                                      *** class Vector2 ***
+#---------------------------------------------------------------------------------------------------------------------
+class Vector2:
+    def __init__(self, x=0, y=0):
+        self.x = x
+        self.y = y
+    
+#---------------------------------------------------------------------------------------------------------------------
+#                                                           
+#---------------------------------------------------------------------------------------------------------------------
+    def __neg__(self):
+        """Negate the vector."""
+        return Vector2(-self.x, -self.y)
+
+#---------------------------------------------------------------------------------------------------------------------
+#                                                           
+#---------------------------------------------------------------------------------------------------------------------
+    def __repr__(self):
+        """String representation for debugging."""
+        return f"Vector2(x={self.x}, y={self.y})"    
+        
+#---------------------------------------------------------------------------------------------------------------------
+#                                                      *** class CollisionManager ***
+#---------------------------------------------------------------------------------------------------------------------
+class CollisionManager:
+    def __init__(self):
+        self.collidables = []  # List of GameObjects that can be collided with
+
+#---------------------------------------------------------------------------------------------------------------------
+#                                                           
+#---------------------------------------------------------------------------------------------------------------------
+    def add(self, obj):
+        """Register a collidable object."""
+        self.collidables.append(obj)
+
+#---------------------------------------------------------------------------------------------------------------------
+#                                                           
+#---------------------------------------------------------------------------------------------------------------------
+    def remove(self, obj):
+        """Unregister a collidable object."""
+        if obj in self.collidables:
+            self.collidables.remove(obj)
+
+#---------------------------------------------------------------------------------------------------------------------
+#                                                           
+#---------------------------------------------------------------------------------------------------------------------
+    def checkCollision(self, obj, impact=Vector2(x=0, y=0)):
+        """Check if the given object collides with any registered collidable."""
+        for collidable in self.collidables:
+            if collidable != obj and collidable.hitTest(obj) and collidable.shouldCollide(obj, impact) and obj.shouldCollide(collidable, -impact):
+                return collidable
+        return None    
 
 #---------------------------------------------------------------------------------------------------------------------
 #                                                      *** class Sound ***
@@ -262,6 +317,24 @@ class GameObject:
 #---------------------------------------------------------------------------------------------------------------------
 #                                                           
 #---------------------------------------------------------------------------------------------------------------------
+    def removeChild(self, child):
+        """Remove a child GameObject from this GameObject."""
+        if child in self.children:
+            self.children.remove(child)
+            child.parent = None
+            
+#---------------------------------------------------------------------------------------------------------------------
+#                                                           
+#---------------------------------------------------------------------------------------------------------------------
+    def removeAllChildren(self):
+        """Remove all children from this GameObject."""
+        for child in self.children:
+            child.parent = None  # Clear parent reference for each child
+        self.children = []  # Clear the children list
+
+#---------------------------------------------------------------------------------------------------------------------
+#                                                           
+#---------------------------------------------------------------------------------------------------------------------
     def render(self):
         """Render this GameObject and its children."""
         glPushMatrix()
@@ -287,14 +360,26 @@ class GameObject:
         """To be implemented by subclasses."""
         pass
         
-    def hitTest(self, other):
+#---------------------------------------------------------------------------------------------------------------------
+#                                                           
+#---------------------------------------------------------------------------------------------------------------------
+    def hitTest(self):
         """Default hitTest method. Always returns False."""
         return False
 
+#---------------------------------------------------------------------------------------------------------------------
+#                                                           
+#---------------------------------------------------------------------------------------------------------------------
     def hitTestPoint(self, x, y):
         """Default hitTestPoint method. Always returns False."""
         return False
-
+        
+#---------------------------------------------------------------------------------------------------------------------
+#                                                           
+#---------------------------------------------------------------------------------------------------------------------
+    def shouldCollide(self, other, impact):
+        return True
+        
 #---------------------------------------------------------------------------------------------------------------------
 #                                                           
 #---------------------------------------------------------------------------------------------------------------------
@@ -345,9 +430,9 @@ class Sprite(GameObject):
         # Local corners relative to the origin
         local_corners = [
             (-self.originX, -self.originY),           # Top-left
-            (self.width - self.originX, -self.originY),    # Top-right
-            (self.width - self.originX, self.height - self.originY),  # Bottom-right
-            (-self.originX, self.height - self.originY)   # Bottom-left
+            (self.width - 1 - self.originX, -self.originY),    # Top-right
+            (self.width - 1 - self.originX, self.height - 1 - self.originY),  # Bottom-right
+            (-self.originX, self.height - 1 - self.originY)   # Bottom-left
         ]
 
         # Transform corners to world space
@@ -611,6 +696,7 @@ class Game(GameObject):
         self.height = height
         self.title = title
         self.window = None
+        self.collisionManager = CollisionManager()
 
 #---------------------------------------------------------------------------------------------------------------------
 #                                                           
@@ -652,20 +738,33 @@ class Game(GameObject):
 #---------------------------------------------------------------------------------------------------------------------
 #                                                           
 #---------------------------------------------------------------------------------------------------------------------
+
     def run(self):
         """Main loop of the game."""
         self.setupWindow()
         self.setup()
-
+    
+        target_fps = 60
+        frame_duration = 1.0 / target_fps
+    
         while not glfw.window_should_close(self.window):
+            start_time = time.time()
+    
             glfw.poll_events()
-
             glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT)
-
+    
             Input.update(self.window)
             self.update()
             self.render()
-
+    
             glfw.swap_buffers(self.window)
-
+    
+            # Calculate the time taken for the frame
+            end_time = time.time()
+            elapsed_time = end_time - start_time
+    
+            # Sleep to maintain frame rate
+            if elapsed_time < frame_duration:
+                time.sleep(frame_duration - elapsed_time)
+    
         glfw.terminate()
