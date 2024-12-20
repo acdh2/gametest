@@ -29,6 +29,29 @@ def transform_point(x, y, tx, ty, rotation, scaleX, scaleY):
     x_rot = x_scaled * cos_a - y_scaled * sin_a
     y_rot = x_scaled * sin_a + y_scaled * cos_a
     return x_rot + tx, y_rot + ty
+
+#---------------------------------------------------------------------------------------------------------------------
+#                                                      *** class hitTestAABB ***
+#---------------------------------------------------------------------------------------------------------------------
+def hitTestAABB(self, other):
+    """
+    Override of the default hitTest method for AABB collision using integers.
+    Checks if this sprite's AABB intersects with another sprite's AABB.
+    """
+    # Calculate this sprite's AABB
+    left_a = int(self.x - self.originX)
+    right_a = int(self.x - self.originX + self.width)
+    top_a = int(self.y - self.originY)
+    bottom_a = int(self.y - self.originY + self.height)
+
+    # Calculate the other sprite's AABB
+    left_b = int(other.x - other.originX)
+    right_b = int(other.x - other.originX + other.width)
+    top_b = int(other.y - other.originY)
+    bottom_b = int(other.y - other.originY + other.height)
+
+    # Check for overlap
+    return not (right_a <= left_b or left_a >= right_b or bottom_a <= top_b or top_a >= bottom_b)
     
 #---------------------------------------------------------------------------------------------------------------------
 #                                                      *** class Vector2 ***
@@ -232,6 +255,8 @@ class Input:
             return getattr(glfw, f"KEY_{key_name.upper()}")
         elif key_name == "space":
             return glfw.KEY_SPACE
+        elif key_name == "esc":
+            return glfw.KEY_ESCAPE
         else:
             raise ValueError(f"Unknown key name: {key_name}")
 
@@ -293,9 +318,6 @@ class GameObject:
     Base class for all game objects.
     Handles position, rotation, scale, matrix transformations, and parent-child relationships.
     """
-#---------------------------------------------------------------------------------------------------------------------
-#                                                           
-#---------------------------------------------------------------------------------------------------------------------
     def __init__(self, x=0, y=0, rotation=0, scaleX=1, scaleY=1):
         self.x = x
         self.y = y
@@ -304,6 +326,40 @@ class GameObject:
         self.scaleY = scaleY
         self.children = []  # List to store child GameObjects
         self.parent = None  # Reference to the parent GameObject
+        self._game = None  # Cached reference to the Game object
+
+#---------------------------------------------------------------------------------------------------------------------
+#                                                           
+#---------------------------------------------------------------------------------------------------------------------
+    def _invalidateGameCache(self):
+        """Invalidate the cached game reference and propagate the change to all children."""
+        self._game = None
+        for child in self.children:
+            child._invalidateGameCache()
+
+#---------------------------------------------------------------------------------------------------------------------
+#                                                           
+#---------------------------------------------------------------------------------------------------------------------
+    def _setGame(self):
+        """Search up the hierarchy to find the game object and cache it."""
+        if self._game is None:
+            current = self
+            while current.parent:
+                current = current.parent
+            if isinstance(current, Game):  # Assuming Game is the base class for the game object
+                self._game = current
+            else:
+                self._game = None  # No game object found in the hierarchy
+
+        return self._game
+
+#---------------------------------------------------------------------------------------------------------------------
+#                                                           
+#---------------------------------------------------------------------------------------------------------------------
+    @property
+    def game(self):
+        """Property to retrieve the game object."""
+        return self._setGame()
 
 #---------------------------------------------------------------------------------------------------------------------
 #                                                           
@@ -313,6 +369,7 @@ class GameObject:
         if child not in self.children:
             self.children.append(child)
             child.parent = self
+            self._invalidateGameCache()  # Invalidate cached game reference
 
 #---------------------------------------------------------------------------------------------------------------------
 #                                                           
@@ -322,7 +379,8 @@ class GameObject:
         if child in self.children:
             self.children.remove(child)
             child.parent = None
-            
+            self._invalidateGameCache()  # Invalidate cached game reference
+
 #---------------------------------------------------------------------------------------------------------------------
 #                                                           
 #---------------------------------------------------------------------------------------------------------------------
@@ -331,6 +389,7 @@ class GameObject:
         for child in self.children:
             child.parent = None  # Clear parent reference for each child
         self.children = []  # Clear the children list
+        self._invalidateGameCache()  # Invalidate cached game reference
 
 #---------------------------------------------------------------------------------------------------------------------
 #                                                           
@@ -379,6 +438,7 @@ class GameObject:
 #---------------------------------------------------------------------------------------------------------------------
     def shouldCollide(self, other, impact):
         return True
+
         
 #---------------------------------------------------------------------------------------------------------------------
 #                                                           
@@ -766,5 +826,9 @@ class Game(GameObject):
             # Sleep to maintain frame rate
             if elapsed_time < frame_duration:
                 time.sleep(frame_duration - elapsed_time)
-    
+                
+            if Input.getKey("esc"):
+                break
+                    
         glfw.terminate()
+

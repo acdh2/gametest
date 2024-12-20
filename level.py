@@ -1,6 +1,7 @@
 from game import *
 from box import *
 from player import *
+from tile import *
 import random
 
 # Define constants
@@ -11,6 +12,7 @@ class Level(GameObject):
         super().__init__()
         self.collisionManager = collisionManager
         self.updatables = []
+        self.currentLevel = 0
 
     def loadLevel(self, levelData):
         self.clearLevel()  # Ensure any existing tiles are removed
@@ -19,7 +21,7 @@ class Level(GameObject):
         for rowIndex, row in enumerate(levelData):
             for colIndex, cell in enumerate(row):
                 if cell == 1:  # Tile
-                    tile = Sprite("assets/tile.png", x=colIndex * tileSize, y=rowIndex * tileSize)
+                    tile = Tile(self.collisionManager, x=colIndex * tileSize, y=rowIndex * tileSize)
                     self.addChild(tile)
                     self.collisionManager.add(tile)  # Register tile with CollisionManager
                 if cell == 2:
@@ -37,15 +39,15 @@ class Level(GameObject):
         """Clear the current level by removing all tiles."""
         self.removeAllChildren()  # Use the GameObject's removeAllChildren method
         
-    def update(self):
-        for updatable in self.updatables:
-            updatable.update()
+    def nextLevel(self):
+        self.loadLevel(self.levelData[self.currentLevel])
+        self.currentLevel += 1
 
     def setup(self):
         """Setup the level by loading it."""
         # Create a 20x15 grid with mostly zeros and a few random ones
-        levelData = [
-            [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+        self.levelData = [
+            [[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
             [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
             [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
             [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
@@ -59,6 +61,27 @@ class Level(GameObject):
             [0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 0],
             [0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
             [0, 0, 0, 1, 0, 0, 0, 0, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0],
+            [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]],
+            #------------------------------------------------------------
+            [[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
             [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+            [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+            [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+            [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+            [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 0],
+            [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2, 0, 3, 0, 0, 0, 0, 0],
+            [0, 0, 0, 0, 0, 0, 0, 2, 0, 0, 0, 1, 1, 1, 1, 1, 0, 0, 0, 0],
+            [0, 0, 0, 0, 0, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0],
+            [0, 0, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+            [0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+            [0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 0],
+            [0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+            [0, 0, 0, 1, 0, 0, 0, 0, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0],
+            [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]],
+            #------------------------------------------------------------
         ]
-        self.loadLevel(levelData)
+        self.nextLevel()
+        
+    def update(self):
+        for updatable in self.updatables:
+            updatable.update()

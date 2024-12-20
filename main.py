@@ -1,6 +1,7 @@
 from game import *
 from level import *
-from player import *
+
+Sprite.hitTest = hitTestAABB
 
 class MyGame(Game):
     def __init__(self):
